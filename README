@@ -1,0 +1,193 @@
+# NBO Agent - Next Best Offer Generator
+
+## Overview
+
+The **NBO Agent** (Next Best Offer Agent) is a machine learning system that generates **personalized credit offers** for clients based on their profile. Using a **T5-small transformer model**, it can produce natural-language messages tailored to individual clients, taking into account features such as RFM score, risk score, age, gender, income, and number of active loans.
+
+The agent can:
+
+- Automatically generate offers from a CSV of client profiles (`actual_clients.csv`)
+- Allow manual input of new client data via console
+- Be retrained with updated datasets if needed
+
+The project comes **pretrained on the provided `train_data.csv` and `train_data2.csv`** so it is ready to use immediately.
+
+---
+
+## Project Structure
+
+```
+.
+├── train.py                # Fine-tune or retrain the T5 model
+├── generate.py             # Generate offers for clients
+├── data/                   # CSV datasets
+│   ├── train_data.csv
+│   ├── train_data2.csv
+│   └── actual_clients.csv
+├── nbo_model/              # Pretrained model weights and tokenizer
+└── environment.yml         # Conda environment file
+```
+
+---
+
+## Setup & Installation
+
+### 1. Create and activate the Conda environment
+
+```bash
+conda activate nbo_agent
+```
+
+> The environment includes all necessary Python packages: PyTorch, Hugging Face Transformers, Datasets, Pandas, etc.
+
+### 2. Update dependencies (optional)
+
+If you install new packages and want to **save them back to `environment.yml`**:
+
+```bash
+conda env export --name nbo_agent > environment.yml
+```
+
+This ensures reproducibility for future users.
+
+---
+
+## Using the Pretrained Agent
+
+### 1. Generate offers from `actual_clients.csv`
+
+```bash
+python generate.py
+```
+
+- Reads all clients from `data/actual_clients.csv`
+- Generates and prints personalized offers for each client
+
+### 2. Add a new client manually
+
+While running `generate.py`, the script will prompt:
+
+```
+Do you want to add a new client manually? (y/n):
+```
+
+- Enter `y` to provide client data in the format:
+
+```
+rfm,risk,age,gender(M/F),name,income,active_loans
+```
+
+Example:
+
+```
+57,486,68,F,Karen Taylor,8372,0
+```
+
+- The agent will generate a personalized offer immediately.
+
+### 3. Add a new client to `actual_clients.csv`
+
+- Simply append the client row to the CSV file in the same format.
+- Run `generate.py` again to read the updated CSV and generate offers.
+
+---
+
+## Retraining the Agent (Optional)
+
+If you want to **retrain the model** on updated data:
+
+1. Create a new CSV with required columns in `data/` and change the CSV_FILE name. Required columns:
+
+```
+rfm,risk,age,gender,name,income,active_loans,offer_text
+```
+
+2. Change the name of the saved agent from nbo_model1 to nbo_model2 or any different name to avoid training the model for a lot of time and throwing an error at the end that cannot save it in the same file due to locked folder.
+
+3. Run:
+
+```bash
+python train.py
+```
+
+- This fine-tunes the T5 model on your dataset.
+- Training arguments like number of epochs and batch size can be adjusted in `train.py`.
+
+3. After training, the model and tokenizer are automatically saved to `./nbo_model/`.
+
+> **Note:** The model comes pretrained with `train_data.csv` and `train_data2.csv` for immediate use.
+
+---
+
+## Example Use Case
+
+**CSV input (`actual_clients.csv`):**
+
+```
+rfm,risk,age,gender,name,income,active_loans
+45,512,34,F,Anna Petrova,4820,1
+72,310,58,M,Georgi Ivanov,7321,2
+```
+
+**Generated output:**
+
+```
+Client 1: Dear Ms. Petrova, based on your profile we are pleased to extend an exclusive offer...
+Client 2: Dear Mr. Ivanov, after reviewing your profile, we regret to inform you that we cannot extend a new credit offer at this time...
+```
+
+---
+
+## Notes on the Machine Learning Model
+
+- The agent uses **T5-small**, a transformer-based sequence-to-sequence model.
+- It is trained to map a structured customer profile (`rfm`, `risk`, `age`, `gender`, `income`, `active_loans`) to a natural language offer (`offer_text`).
+- Pretraining on `train_data.csv` and `train_data2.csv` allows immediate offer generation.
+- Retraining updates the model for new clients or custom scenarios.
+
+---
+
+The training data for the model follows these rules:
+
+### 1. RFM (Recency, Frequency, Monetary)
+
+- **High RFM** → loyal and stable client → higher credit amount.
+- **Low RFM** → smaller credit amount or shorter term to encourage repayment.
+
+### 2. Risk Score
+
+- **Low risk** → increases maximum credit amount.
+- **High risk** (≥700–800) → significantly reduce offer or reject.
+
+### 3. Income
+
+- **High income** → allows higher credit sum.
+- **Low income** → limits the offered amount.
+
+### 4. Age
+
+- **18–25 or >65** → reduce credit sum (higher risk).
+- **25–30 or 60–65** → medium sums.
+- **Other ages** → higher sums.
+
+### 5. Active Loans
+
+- **No active loans** → can offer higher credit.
+- **Existing loans** → consider remaining balance before offering new credit.
+
+### 6. Text Personalization
+
+- **Gender-based greeting**:
+  - `M` → Dear Mr. `<LastName>`
+  - `F` → Dear Ms. `<LastName>`
+- **Credit type**:
+  - **Installment loan** → high income, few active loans.
+  - **Revolving credit** → more active loans or small sum.
+- **Decline** → very high risk or too many active loans.
+
+---
+
+## References
+
+- [Hugging Face Transformers](https://huggingface.co/docs/transformers/index)
+- [Conda Environments Documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)

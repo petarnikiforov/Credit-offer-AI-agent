@@ -1,0 +1,5 @@
+*.model filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text
+*.json filter=lfs diff=lfs merge=lfs -text
+flan-t5-small/** filter=lfs diff=lfs merge=lfs -text
+nbo_model/** filter=lfs diff=lfs merge=lfs -text
