@@ -35,6 +35,7 @@ The project comes **pretrained on the provided `train_data.csv` and `train_data2
 ### 1. Create and activate the Conda environment
 
 ```bash
+conda env create -f environment.yml --name nbo_agent
 conda activate nbo_agent
 ```
 
