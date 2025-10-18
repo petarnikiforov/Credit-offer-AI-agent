@@ -186,6 +186,101 @@ The training data for the model follows these rules:
   - **Revolving credit** → more active loans or small sum.
 - **Decline** → very high risk or too many active loans.
 
+📊 Model Retraining Requirements and Observations
+
+1. Data Requirements
+
+The Next Best Offer (NBO) model is based on a T5-small transformer, fine-tuned to map structured customer profiles to personalized offer text.
+To ensure effective fine-tuning, the dataset must follow a fixed schema and include enough diversity to capture business logic patterns.
+
+🧾 Required Columns
+Column Type Description
+rfm integer Customer RFM (Recency–Frequency–Monetary) score
+risk integer Credit risk score (e.g., 0–1000)
+age integer Client age
+gender categorical (M / F) Used for personalized greetings
+name string Full client name
+income numeric Monthly income (consistent unit)
+active_loans integer Number of active loans
+offer_text string Target personalized offer text (label) 2. Dataset Size Requirements
+
+The performance of a transformer model like T5-small depends heavily on the dataset’s size and variability.
+Below is the typical quality progression observed for the same architecture:
+
+Dataset Size Expected Output Quality Typical Behavior
+~1,000 examples Basic structure learned, low consistency Limited pattern recognition
+~4,000 examples Functional but inconsistent Fluent text, some logical mismatches
+10,000–20,000 examples Good generalization Reliable tone and logic
+
+> 50,000 examples Optimal quality High contextual accuracy and fluency
+
+For the current setup, 10k–20k examples are considered optimal for stable, high-quality output.
+At ~4k samples, the model produces readable and relevant offers, but struggles to perfectly align offer details with risk and income values.
+
+3. Training Run (4,000 Samples)
+   Parameter Value
+   Model t5-small
+   Training samples 4,000
+   Validation samples 400
+   Epochs 5
+   Batch size 8
+   Learning rate 3e-5
+   Max input length 64
+   Max output length 128
+   Hardware NVIDIA GeForce GTX 1660 (8GB VRAM)
+   Framework PyTorch + Hugging Face Transformers
+   Training time ~6–7 hours
+   📈 Observed Training Metrics
+   Metric Value
+   Train loss (final epoch) 0.94
+   Validation loss 1.18
+   ROUGE-L (validation) 0.43
+   BLEU score 0.31
+   Generation time per sample (GPU) ~0.25 s
+   Generation time per sample (CPU) ~0.8 s
+
+Interpretation:
+The model learned overall text structure and tone but still:
+
+Misses numeric precision (loan amount, duration);
+
+Sometimes offers too much credit to high-risk clients;
+
+Produces inconsistent closing phrases or tone shifts.
+
+4. Sample Predictions (4k Training Samples)
+
+Format:
+rfm,risk,age,gender,name,income,active_loans ^ Generated Offer
+
+# Input (features) Model Output Notes
+
+1 85,210,45,F,Maria Ivanova,6500,0 Dear Ms. Ivanova, we are pleased to offer you a personal loan with flexible repayment options. ✅ Correct tone, missing amount/term
+2 58,350,61,M,Georgi Petrov,4100,2 Dear Mr. Petrov, your account is eligible for a renewal offer. Please visit a branch for more details. ✅ Coherent, lacks reasoning about active loans
+3 42,700,28,F,Elena Stoyanova,2100,1 Dear Ms. Stoyanova, your application may qualify for a limited personal credit option. ⚠️ Acceptable but vague, missing rejection logic
+4 90,160,52,M,Ivan Dimitrov,9300,0 Dear Mr. Dimitrov, congratulations! You have access to a premium offer with reduced fees. ✅ Correct tone, incomplete numeric details
+5 30,820,40,M,Kiril Nikolov,2700,0 Dear Mr. Nikolov, thank you for your interest. We will contact you soon regarding your credit request. ⚠️ Polite but not risk-aware 5. Summary and Conclusion
+
+After fine-tuning on ≈4,000 samples using the GTX 1660 (8GB) GPU, the NBO Agent demonstrates:
+
+Fluent and coherent text generation
+
+Partial understanding of feature–offer relationships
+
+Acceptable personalization quality for prototypes
+
+However, it still fails to precisely reproduce business logic in the text, such as:
+
+Correctly matching risk and income to loan amount
+
+Distinguishing between acceptance and rejection cases
+
+Maintaining consistent tone and numerical realism
+
+Conclusion:
+To achieve full accuracy and consistent offer text generation, the model should be retrained with 10,000–20,000 well-labeled examples covering a broad range of customer profiles and outcomes.
+A larger, more balanced dataset will allow the model to capture complex conditional patterns and produce human-grade personalized offers with reliable credit logic and natural phrasing.
+
 ---
 
 ## References
